@@ -1,60 +1,242 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
-<html>
+<!DOCTYPE html>
+<html lang="ru">
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>185.146.114.73:80</title>
-    <style type="text/css">
+    <style>
+        :root {
+            --primary: #008f97;
+            --primary-hover: #006f75;
+            --dark-border: #005a60;
+            --bg-color: #e9edf0;
+        }
+
         body {
-            font-family: Arial, Helvetica, sans-serif;
-            background-color: #f0f2f5;
-            color: #000000;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: var(--bg-color);
             margin: 0;
-            padding: 0;
+            padding: 20px 0;
+            color: #333;
         }
 
-        #container {
-            width: 500px;
-            margin: 80px auto 0 auto;
-            background-color: #ffffff;
-            border: 1px solid #7a7a7a;
+        #wrapper {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #fff;
+            border: 1px solid #a6b2be;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
         }
 
-        #header {
-            background-color: #008f97;
-            color: #ffffff;
-            padding: 12px 15px;
-            border-bottom: 1px solid #7a7a7a;
+        header {
+            background: var(--primary);
+            color: #fff;
+            padding: 15px 20px;
+            border-bottom: 3px solid var(--dark-border);
         }
 
-        #header h1 {
-            font-size: 16px;
-            font-weight: bold;
+        header h1 {
             margin: 0;
-            padding: 0;
+            font-size: 20px;
+            font-weight: 600;
         }
 
-        #content {
-            padding: 20px 15px;
-        }
-
-        #content p {
+        nav {
+            background: #d0d9e0;
+            padding: 10px 20px;
+            border-bottom: 1px solid #b0bec5;
             font-size: 13px;
-            color: #000000;
-            margin: 0;
-            padding: 0;
+            display: flex;
+            gap: 15px;
+        }
+
+        nav a {
+            color: var(--dark-border);
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        nav a:hover {
+            text-decoration: underline;
+        }
+
+        .content {
+            padding: 20px;
+        }
+
+        .search-box {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-box input[type="text"] {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #999;
+            font-size: 13px;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: #fff;
+            border: 1px solid var(--dark-border);
+            padding: 8px 18px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 13px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+        }
+
+        table.site-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        table.site-table th {
+            background: #e2e8ec;
+            border: 1px solid #b0bec5;
+            padding: 8px;
+            text-align: left;
+        }
+
+        table.site-table td {
+            border: 1px solid #cfd8dc;
+            padding: 8px;
+        }
+
+        table.site-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .domain-link {
+            color: #006f75;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .domain-link:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
 
-    <div id="container">
-        <div id="header">
-            <h1>403 Forbidden</h1>
-        </div>
-        <div id="content">
-            <p>You do not have permission to access this router!</p>
+    <div id="wrapper">
+        <header>
+            <h1>Local Web Network Portal / Каталог сайтов сети</h1>
+        </header>
+
+        <nav>
+            <a href="index.html">Main / Главная</a>
+            <a href="create.html">Register Domain / Добавить сайт</a>
+            <a href="my_sites.html">My IP Sites / Мои сайты</a>
+            <a href="dns.html">DNS Status / ДНС Сервер</a>
+        </nav>
+
+        <div class="content">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Поиск по названию домена...">
+                <button class="btn" id="searchBtn">Найти</button>
+            </div>
+
+            <table class="site-table" id="sitesTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Domain / Домен</th>
+                        <th>IP Address</th>
+                        <th>Punycode</th>
+                        <th>Created At</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="sitesList"></tbody>
+            </table>
         </div>
     </div>
 
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { initializeFirestore, collection, getDocs, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBkd_rtqteAT7LCq9WptfQWLvMBI1igm14",
+            authDomain: "sosial-978d1.firebaseapp.com",
+            databaseURL: "https://sosial-978d1-default-rtdb.firebaseio.com",
+            projectId: "sosial-978d1",
+            storageBucket: "sosial-978d1.firebasestorage.app",
+            messagingSenderId: "546379463021",
+            appId: "1:546379463021:web:ffdea79f85626b945fc264",
+            measurementId: "G-B6R4BMT0M6"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = initializeFirestore(app, {
+            experimentalForceLongPolling: true
+        });
+
+        let allSites = [];
+
+        async function loadSites() {
+            const table = document.getElementById('sitesTable');
+
+            try {
+                const q = query(collection(db, "sites"));
+                const querySnapshot = await getDocs(q);
+                
+                allSites = [];
+                querySnapshot.forEach((docSnap) => {
+                    allSites.push({ id: docSnap.id, ...docSnap.data() });
+                });
+
+                renderSites(allSites);
+                table.style.display = 'table';
+            } catch (err) {
+                console.error('NETWORK ERROR:', err);
+            }
+        }
+
+        function renderSites(sites) {
+            const tbody = document.getElementById('sitesList');
+            tbody.innerHTML = '';
+
+            if (sites.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Сайтов пока нет. Будь первым, кто добавит!</td></tr>';
+                return;
+            }
+
+            sites.forEach(site => {
+                const tr = document.createElement('tr');
+                const created = site.createdAt ? new Date(site.createdAt).toLocaleDateString() : 'N/A';
+                const siteDomain = site.domain || 'unnamed.node';
+                
+                // Переход напрямую в router.html без промежуточных экранов
+                const routerUrl = `https://udgab8.mimo.run/router.html?site=${encodeURIComponent(siteDomain)}`;
+                
+                tr.innerHTML = `
+                    <td><a class="domain-link" href="${routerUrl}">${siteDomain}</a></td>
+                    <td><code>${site.ip || '192.168.1.1'}</code></td>
+                    <td><small>${site.punycode || siteDomain}</small></td>
+                    <td>${created}</td>
+                    <td><a class="btn" style="font-size:11px; padding:3px 8px;" href="${routerUrl}">VIEW</a></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        document.getElementById('searchBtn').addEventListener('click', () => {
+            const val = document.getElementById('searchInput').value.toLowerCase().trim();
+            const filtered = allSites.filter(s => s.domain && s.domain.toLowerCase().includes(val));
+            renderSites(filtered);
+        });
+
+        loadSites();
+    </script>
 </body>
 </html>
